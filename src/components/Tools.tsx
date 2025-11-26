@@ -189,11 +189,24 @@ export default function Tools() {
       const userData = await fetchClickUpUser(clickUpApiKey);
       setClickUpUser(userData.user);
 
-      // Step 2: Fetch teams
+      // Step 2: Store credentials using Web Credential Management API
+      if ("PasswordCredential" in window) {
+        const credential = await navigator.credentials.create({
+          password: {
+            iconURL: userData.user.profilePicture,
+            id: "ClickUp",
+            name: userData.user.username,
+            password: clickUpApiKey,
+          }
+        } as unknown as CredentialCreationOptions);
+        navigator.credentials.store(credential!);
+      }
+
+      // Step 3: Fetch teams
       const teamsData = await fetchClickUpTeams(clickUpApiKey);
       setClickUpTeams(teamsData.teams);
 
-      // Step 3: Fetch data from the selected team (if available)
+      // Step 4: Fetch data from the selected team (if available)
       const currentSelectedTeamId = selectedTeamId || (teamsData.teams[0] && teamsData.teams[0].id);
       setSelectedTeamId(currentSelectedTeamId);
       const tasks = await fetchClickUpTasks(clickUpApiKey, currentSelectedTeamId, fromDate, toDate);
