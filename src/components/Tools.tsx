@@ -8,6 +8,7 @@ interface ClickUpTask {
   custom_id: string;
   name: string;
   parent: string;
+  url: string;
 }
 
 interface ClickUpTimeEntry {
@@ -162,7 +163,7 @@ export default function Tools() {
             Authorization: apiKey
           }
         });
-        const task = await taskResponse.json();
+        const task: ClickUpTask = await taskResponse.json();
         if (!task.parent) {
           tasks.push(task);
         }
@@ -426,7 +427,7 @@ export default function Tools() {
                         {task.custom_id || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {task.name || 'Unknown Task'}
+                        <a href={task.url} target="_blank" rel="noopener noreferrer">{task.name || 'Unknown Task'}</a>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {clickUpUser?.email?.split('@')[0] || 'N/A'}
