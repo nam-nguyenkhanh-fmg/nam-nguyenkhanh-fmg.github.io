@@ -31,7 +31,6 @@ npm run export
 ## 📁 Project Structure
 
 ```
-fmg.tools/
 ├── src/
 │   ├── app/
 │   │   ├── globals.css
