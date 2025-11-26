@@ -276,7 +276,7 @@ export default function Tools() {
           <div className="space-y-4">
             <div>
               <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
-                API Key
+                Personal API Token
               </label>
               <input
                 type="password"
@@ -289,12 +289,12 @@ export default function Tools() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 <a
-                  href="https://help.clickup.com/hc/en-us/articles/6303426241687-Use-the-ClickUp-API#personal-api-key"
+                  href="https://developer.clickup.com/docs/authentication#personal-token"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary-600 hover:text-primary-700"
                 >
-                  How to get your API key →
+                  How to get your Personal API Token →
                 </a>
               </p>
             </div>
