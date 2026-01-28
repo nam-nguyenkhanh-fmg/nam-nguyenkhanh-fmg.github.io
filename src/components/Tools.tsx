@@ -303,7 +303,7 @@ export default function Tools() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 <a
-                  href="https://developer.clickup.com/docs/authentication#personal-token"
+                  href="https://app.clickup.com/8438589/settings/apps"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary-600 hover:text-primary-700"
