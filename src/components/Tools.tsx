@@ -193,7 +193,7 @@ export default function Tools() {
       if ("PasswordCredential" in window) {
         const credential = await navigator.credentials.create({
           password: {
-            iconURL: userData.user.profilePicture,
+            iconURL: "https://clickup.com/images/for-se-page/clickup.png",
             id: "ClickUp",
             name: userData.user.username,
             password: clickUpApiKey,
