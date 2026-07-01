@@ -3,6 +3,10 @@ import { Inter } from 'next/font/google'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const viewport = {
+  themeColor: '#000000',
+}
+
 export const metadata = {
   title: 'FMG Tools - Your Comprehensive Toolkit',
   description: 'FMG Tools provides a collection of useful utilities and resources to help developers and professionals streamline their workflow.',
@@ -11,6 +15,12 @@ export const metadata = {
   creator: 'FMG Tools',
   publisher: 'FMG Tools',
   robots: 'index, follow',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'FMG Tools',
+  },
   openGraph: {
     title: 'FMG Tools - Your Comprehensive Toolkit',
     description: 'FMG Tools provides a collection of useful utilities and resources to help developers and professionals streamline their workflow.',
