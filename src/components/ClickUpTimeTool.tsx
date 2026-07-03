@@ -198,7 +198,7 @@ export default function ClickUpTimeTool({ apiKey, user }: ClickUpTimeToolProps) 
           </Select>
         </FormControl>
 
-        <Stack direction="row" spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <DatePicker
             label="Start Date"
             value={fromDate}
@@ -227,7 +227,7 @@ export default function ClickUpTimeTool({ apiKey, user }: ClickUpTimeToolProps) 
 
       {/* Results Table */}
       <Paper variant="outlined">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: { xs: 1.5, sm: 2 }, py: 1.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
             Time Entries ({tasks.length})
           </Typography>
@@ -236,8 +236,8 @@ export default function ClickUpTimeTool({ apiKey, user }: ClickUpTimeToolProps) 
           </IconButton>
         </Box>
 
-        <TableContainer>
-          <Table size="small">
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 400 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Task ID</TableCell>

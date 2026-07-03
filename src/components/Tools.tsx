@@ -42,20 +42,20 @@ export default function Tools() {
   };
 
   return (
-    <section id="tools" className="py-20 bg-white">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-primary-900 mb-4">
+    <section id="tools" className="py-10 md:py-20 bg-white">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-3xl md:text-5xl font-bold text-primary-900 mb-4">
             Tools
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
             Discover our comprehensive collection of tools designed to enhance your productivity
             and streamline your development workflow.
           </p>
         </div>
 
         <div className="max-w-2xl mx-auto">
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4, '& .MuiStepLabel-label': { fontSize: { xs: '0.75rem', sm: '0.875rem' } } }}>
             <Step completed={hasTokens}>
               <StepLabel
                 onClick={() => setActiveStep(0)}
