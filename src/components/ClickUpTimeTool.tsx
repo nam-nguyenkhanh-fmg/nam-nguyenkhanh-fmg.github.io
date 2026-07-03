@@ -90,9 +90,11 @@ async function fetchTasks(apiKey: string, teamId: string, from: string, to: stri
   );
   const timeEntries = await res.json();
 
-  const taskIds = [...new Set((timeEntries.data as ClickUpTimeEntry[] || [])
-    .map(e => e.task?.id)
-    .filter(Boolean))] as string[];
+  const taskIds: string[] = Array.from(new Set(
+    (timeEntries.data as ClickUpTimeEntry[] || [])
+      .map(e => e.task?.id)
+      .filter((id): id is string => Boolean(id))
+  ));
 
   const tasks: ClickUpTask[] = [];
   for (const taskId of taskIds) {
