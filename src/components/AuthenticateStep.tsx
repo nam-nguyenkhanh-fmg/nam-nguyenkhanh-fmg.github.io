@@ -1,151 +1,90 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
 import TextField from '@mui/material/TextField'
-import Checkbox from '@mui/material/Checkbox'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import { registerCredential, authenticate } from '@/lib/webauthn-prf'
-import { deriveKeyFromPRF, encryptData, decryptData } from '@/lib/crypto'
-import { saveVault, saveWebAuthn, getVault, getWebAuthn } from '@/lib/vault-db'
 
-export interface Tokens {
-  clickup?: string
-  github?: string
+export enum TokenId {
+  ClickUp = 'clickup',
+  GitHub = 'github',
 }
 
-export interface TokenErrors {
-  clickup?: string
-  github?: string
+export interface Token {
+  id: TokenId
+  name: string
+  link: { url: string; text: string }
+  value: string
+  success: boolean
+  error?: string
+  data?: unknown
+  authenticate: (value: string) => Promise<unknown>
+}
+
+function createTokens(): Token[] {
+  return [
+    {
+      id: TokenId.ClickUp,
+      name: 'ClickUp API Token',
+      link: { url: 'https://app.clickup.com/8438589/settings/apps', text: 'Get your ClickUp API Token →' },
+      value: '',
+      success: false,
+      authenticate: async (value) => {
+        const res = await fetch('https://api.clickup.com/api/v2/user', { headers: { Authorization: value } })
+        if (!res.ok) throw new Error('Invalid ClickUp token')
+        const json = await res.json()
+        return json.user
+      },
+    },
+    {
+      id: TokenId.GitHub,
+      name: 'GitHub Personal Access Token',
+      link: { url: 'https://github.com/settings/tokens', text: 'Get your GitHub Personal Access Token →' },
+      value: '',
+      success: false,
+      authenticate: async (value) => {
+        const res = await fetch('https://api.github.com/user', { headers: { Authorization: `Bearer ${value}` } })
+        if (!res.ok) throw new Error('Invalid GitHub token')
+      },
+    },
+  ]
 }
 
 interface AuthenticateStepProps {
-  onTokensChange: (tokens: Tokens) => void
-  tokens: Tokens
+  onTokensChange: (tokens: Token[]) => void
+  tokens: Token[]
   onNext: () => void
 }
 
-async function validateClickUp(apiKey: string): Promise<void> {
-  const res = await fetch('https://api.clickup.com/api/v2/user', {
-    headers: { Authorization: apiKey },
-  })
-  if (!res.ok) throw new Error('Invalid ClickUp token')
-}
-
-async function validateGitHub(pat: string): Promise<void> {
-  const res = await fetch('https://api.github.com/user', {
-    headers: { Authorization: `Bearer ${pat}` },
-  })
-  if (!res.ok) throw new Error('Invalid GitHub token')
-}
-
-async function saveWithBiometric(tokens: Tokens): Promise<void> {
-  const { credentialId, prfSalt, prfOutput } = await registerCredential('fmg-vault')
-  const key = await deriveKeyFromPRF(prfOutput)
-  const encrypted = await encryptData(key, JSON.stringify(tokens))
-  await saveVault({ data: encrypted })
-  await saveWebAuthn({ credentialId, prfSalt })
-}
-
-async function saveWithCredentialManager(tokens: Tokens): Promise<void> {
-  if (!('PasswordCredential' in window)) return
-
-  if (tokens.clickup) {
-    const cred = await navigator.credentials.create({
-      password: {
-        iconURL: '',
-        id: 'fmg-tools-clickup',
-        name: 'ClickUp API Token',
-        password: tokens.clickup,
-      }
-    } as unknown as CredentialCreationOptions)
-    if (cred) await navigator.credentials.store(cred)
-  }
-
-  if (tokens.github) {
-    const cred = await navigator.credentials.create({
-      password: {
-        iconURL: '',
-        id: 'fmg-tools-github',
-        name: 'GitHub PAT',
-        password: tokens.github,
-      }
-    } as unknown as CredentialCreationOptions)
-    if (cred) await navigator.credentials.store(cred)
-  }
-}
+export { createTokens }
 
 export default function AuthenticateStep({ onTokensChange, tokens, onNext }: AuthenticateStepProps) {
-  const [clickup, setClickup] = useState('')
-  const [github, setGithub] = useState('')
   const [loading, setLoading] = useState(false)
-  const [tokenErrors, setTokenErrors] = useState<TokenErrors>({})
-  const [rememberMe, setRememberMe] = useState(false)
 
-  const onTokensChangeRef = useRef(onTokensChange)
-  onTokensChangeRef.current = onTokensChange
+  const updateToken = (id: string, value: string) => {
+    onTokensChange(tokens.map(t => t.id === id ? { ...t, value, success: false, error: undefined } : t))
+  }
 
-  // Notify parent of token changes
-  useEffect(() => {
-    onTokensChangeRef.current({
-      clickup: clickup || undefined,
-      github: github || undefined,
-    })
-  }, [clickup, github])
-
-  // Auto-fill tokens from biometric vault on mount
-  useEffect(() => {
-    async function loadFromVault() {
-      try {
-        const webauthn = await getWebAuthn()
-        const vault = await getVault()
-        if (!webauthn || !vault) return
-
-        const prfOutput = await authenticate(webauthn.credentialId, webauthn.prfSalt)
-        const key = await deriveKeyFromPRF(prfOutput)
-        const decrypted = await decryptData(key, vault.data.iv, vault.data.ciphertext)
-        const saved: Tokens = JSON.parse(decrypted)
-
-        if (saved.clickup) setClickup(saved.clickup)
-        if (saved.github) setGithub(saved.github)
-      } catch {
-        // Biometric failed or no saved vault – user enters tokens manually
-      }
-    }
-    loadFromVault()
-  }, [])
-
-  const hasTokens = !!(tokens.clickup || tokens.github)
+  const hasTokens = tokens.some(t => t.value)
 
   const handleAuthenticate = async () => {
     setLoading(true)
-    setTokenErrors({})
 
     try {
-      const errors: TokenErrors = {}
-
-      if (tokens.clickup) {
-        try { await validateClickUp(tokens.clickup) } catch { errors.clickup = 'Invalid ClickUp token' }
-      }
-      if (tokens.github) {
-        try { await validateGitHub(tokens.github) } catch { errors.github = 'Invalid GitHub token' }
-      }
-
-      if (errors.clickup || errors.github) {
-        setTokenErrors(errors)
-      } else {
-        if (rememberMe) {
+      const results = await Promise.all(
+        tokens.map(async (token) => {
+          if (!token.value) return { ...token, success: false, error: undefined }
           try {
-            await saveWithBiometric(tokens)
+            const data = await token.authenticate(token.value)
+            return { ...token, success: true, error: undefined, data }
           } catch {
-            try {
-              await saveWithCredentialManager(tokens)
-            } catch {
-              // Credential saving failed silently – continue anyway
-            }
+            return { ...token, success: false, error: `Invalid ${token.name}` }
           }
-        }
+        })
+      )
+
+      onTokensChange(results)
+
+      if (results.every(t => !t.value || t.success)) {
         onNext()
       }
     } finally {
@@ -166,75 +105,41 @@ export default function AuthenticateStep({ onTokensChange, tokens, onNext }: Aut
         </div>
 
         <div className="space-y-4">
-          {/* ClickUp Token */}
-          <form onSubmit={(e) => e.preventDefault()} autoComplete="on">
-            <TextField
-              name="clickup"
-              type="password"
-              label="ClickUp API Token"
-              value={clickup}
-              onChange={(e) => setClickup(e.target.value)}
-              error={!!tokenErrors?.clickup}
-              helperText={tokenErrors?.clickup || (
-                <a
-                  href="https://app.clickup.com/8438589/settings/apps"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  Get your ClickUp API Token →
-                </a>
-              )}
-              fullWidth
-              size="small"
-            />
-          </form>
-
-          {/* GitHub PAT */}
-          <form onSubmit={(e) => e.preventDefault()} autoComplete="on">
-            <TextField
-              name="github"
-              type="password"
-              label="GitHub Personal Access Token"
-              value={github}
-              onChange={(e) => setGithub(e.target.value)}
-              error={!!tokenErrors?.github}
-              helperText={tokenErrors?.github || (
-                <a
-                  href="https://github.com/settings/tokens"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  Get your GitHub Personal Access Token →
-                </a>
-              )}
-              fullWidth
-              size="small"
-            />
-          </form>
-
-          {/* ── Remember me ── */}
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+          {tokens.map((token) => (
+            <form key={token.id} onSubmit={(e) => e.preventDefault()} autoComplete="on">
+              <TextField
+                name={token.id}
+                type="password"
+                label={token.name}
+                value={token.value}
+                onChange={(e) => updateToken(token.id, e.target.value)}
+                error={!!token.error}
+                helperText={token.error || (
+                  <a
+                    href={token.link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:text-primary-700"
+                  >
+                    {token.link.text}
+                  </a>
+                )}
+                fullWidth
+                size="small"
               />
-            }
-            label="Remember me"
-          />
+            </form>
+          ))}
         </div>
       </div>
 
       <div className="flex justify-center mt-4">
         <Button
           variant="contained"
-          disabled={!hasTokens || loading}
+          disabled={!hasTokens}
           onClick={handleAuthenticate}
-          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : undefined}
+          loading={loading}
         >
-          {loading ? 'Authenticating…' : 'Authenticate'}
+          Authenticate
         </Button>
       </div>
     </div>

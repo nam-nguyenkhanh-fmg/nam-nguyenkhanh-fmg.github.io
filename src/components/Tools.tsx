@@ -6,7 +6,7 @@ import Step from '@mui/material/Step'
 import StepLabel from '@mui/material/StepLabel'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import { type Tokens } from './AuthenticateStep'
+import { type Token, TokenId, createTokens } from './AuthenticateStep'
 import AuthenticateStep from './AuthenticateStep'
 import ClickUpTimeTool from './ClickUpTimeTool'
 
@@ -14,7 +14,7 @@ interface ToolDefinition {
   id: string;
   name: string;
   description: string;
-  requiredToken: keyof Tokens;
+  requiredTokens: TokenId[];
 }
 
 const TOOLS: ToolDefinition[] = [
@@ -22,17 +22,19 @@ const TOOLS: ToolDefinition[] = [
     id: 'clickup-time',
     name: 'ClickUp Time Entries',
     description: 'Fetch your tracked time entries for the current month and copy to clipboard.',
-    requiredToken: 'clickup',
+    requiredTokens: [TokenId.ClickUp],
   },
 ];
 
 export default function Tools() {
-  const [tokens, setTokens] = useState<Tokens>({});
+  const [tokens, setTokens] = useState<Token[]>(createTokens);
   const [activeStep, setActiveStep] = useState(0);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
-  const hasTokens = !!(tokens.clickup || tokens.github);
-  const availableTools = TOOLS.filter(t => tokens[t.requiredToken]);
+  const getToken = (id: TokenId) => tokens.find(t => t.id === id && t.success)
+  const getTokenValue = (id: TokenId) => getToken(id)?.value
+  const hasTokens = tokens.some(t => t.value && t.success);
+  const availableTools = TOOLS.filter(t => t.requiredTokens.every(id => getTokenValue(id)));
 
   const handleSelectTool = (toolId: string) => {
     setSelectedTool(toolId);
@@ -126,8 +128,8 @@ export default function Tools() {
           {/* Step 3: Tool */}
           {activeStep === 2 && (
             <div>
-              {selectedTool === 'clickup-time' && tokens.clickup && (
-                <ClickUpTimeTool apiKey={tokens.clickup} />
+              {selectedTool === 'clickup-time' && getTokenValue(TokenId.ClickUp) && (
+                <ClickUpTimeTool apiKey={getTokenValue(TokenId.ClickUp)!} user={getToken(TokenId.ClickUp)!.data as import('./ClickUpTimeTool').ClickUpUser} />
               )}
               <div className="mt-4">
                 <Button
